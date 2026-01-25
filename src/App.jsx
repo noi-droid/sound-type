@@ -5,25 +5,22 @@ function App() {
   const [volume, setVolume] = useState(0);
   const [beat, setBeat] = useState(false);
   const [offsets, setOffsets] = useState([]);
+  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
   const [textIndex, setTextIndex] = useState(0);
   
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const prevVolumeRef = useRef(0);
   
-  const texts = ["SOUND", "BEAT", "MUSIC", "IMAGE"];
+  const texts = ["SOUND", "BEAT", "MUSIC"];
   const text = texts[textIndex];
-  const isImageMode = textIndex === 3;
+  const showImage = textIndex === 2;
   const beatThreshold = 0.05;
   const shakeIntensity = 40;
 
   useEffect(() => {
-    if (!isImageMode) {
-      setOffsets(text.split('').map(() => ({ x: 0, y: 0 })));
-    } else {
-      setOffsets([{ x: 0, y: 0 }]);
-    }
-  }, [text, isImageMode]);
+    setOffsets(text.split('').map(() => ({ x: 0, y: 0 })));
+  }, [text]);
 
   const startListening = async () => {
     try {
@@ -65,6 +62,10 @@ function App() {
             x: offset.x * 0.85,
             y: offset.y * 0.85,
           })));
+          setImageOffset(prev => ({
+            x: prev.x * 0.85,
+            y: prev.y * 0.85,
+          }));
         }
         
         prevVolumeRef.current = normalizedVolume;
@@ -80,21 +81,18 @@ function App() {
 
   useEffect(() => {
     if (beat) {
-      if (!isImageMode) {
-        setOffsets(text.split('').map(() => ({
-          x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-          y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-        })));
-      } else {
-        setOffsets([{
-          x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-          y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-        }]);
-      }
+      setOffsets(text.split('').map(() => ({
+        x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+        y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+      })));
+      setImageOffset({
+        x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+        y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+      });
     }
-  }, [beat, text, volume, isImageMode]);
+  }, [beat, text, volume]);
 
-  const maxLength = Math.max(...texts.filter(t => t !== "IMAGE").map(t => t.length));
+  const maxLength = Math.max(...texts.map(t => t.length));
   const fontSize = `min(${80 / maxLength}vh, 150px)`;
 
   return (
@@ -131,8 +129,29 @@ function App() {
         </button>
       )}
 
-      {isListening && !isImageMode && (
+      {/* 背景画像（MUSICのときだけ表示） */}
+      {isListening && showImage && (
+        <img
+          src="/images/1.png"
+          alt="Image"
+          style={{
+            position: 'absolute',
+            width: '100vw',
+            height: '100vh',
+            objectFit: 'cover',
+            transform: `translate(${imageOffset.x}px, ${imageOffset.y}px)`,
+            transition: beat ? 'none' : 'transform 0.1s ease-out',
+            filter: beat ? 'brightness(1.3)' : 'none',
+            zIndex: 1,
+          }}
+        />
+      )}
+
+      {/* テキスト */}
+      {isListening && (
         <div style={{
+          position: 'relative',
+          zIndex: 2,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -149,28 +168,13 @@ function App() {
                 display: 'inline-block',
                 transform: `translate(${offsets[i]?.x || 0}px, ${offsets[i]?.y || 0}px)`,
                 transition: beat ? 'none' : 'transform 0.1s ease-out',
-                textShadow: beat ? '0 0 20px rgba(255,255,255,0.8)' : 'none',
+                textShadow: beat ? '0 0 20px rgba(255,255,255,0.8)' : '0 0 10px rgba(0,0,0,0.5)',
               }}
             >
               {char}
             </span>
           ))}
         </div>
-      )}
-
-      {isListening && isImageMode && (
-        <img
-          src="/images/1.png"
-          alt="Image"
-          style={{
-            maxHeight: '80vh',
-            maxWidth: '80vw',
-            objectFit: 'contain',
-            transform: `translate(${offsets[0]?.x || 0}px, ${offsets[0]?.y || 0}px)`,
-            transition: beat ? 'none' : 'transform 0.1s ease-out',
-            filter: beat ? 'brightness(1.3)' : 'none',
-          }}
-        />
       )}
 
       {/* Debug */}
@@ -182,10 +186,11 @@ function App() {
         fontFamily: 'monospace',
         fontSize: 12,
         writingMode: 'vertical-rl',
+        zIndex: 10,
       }}>
         <span>vol: {(volume * 100).toFixed(0)}%</span>
         <span style={{ marginTop: 8 }}>beat: {beat ? '●' : '○'}</span>
-        <span style={{ marginTop: 8 }}>{isImageMode ? 'IMG' : text}</span>
+        <span style={{ marginTop: 8 }}>{text}{showImage ? ' + IMG' : ''}</span>
       </div>
 
       {/* Volume bar */}
@@ -198,6 +203,7 @@ function App() {
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 4,
         writingMode: 'horizontal-tb',
+        zIndex: 10,
       }}>
         <div style={{
           position: 'absolute',
