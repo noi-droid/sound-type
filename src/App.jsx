@@ -12,8 +12,8 @@ function App() {
   const prevVolumeRef = useRef(0);
   
   const text = "SOUND";
-  const beatThreshold = 0.15; // ビート検出の閾値
-  const shakeIntensity = 30; // 揺れの強さ
+  const beatThreshold = 0.05; // ビート検出の閾値（小さいほど敏感）
+  const shakeIntensity = 40; // 揺れの強さ
 
   // オフセット初期化
   useEffect(() => {
@@ -58,8 +58,8 @@ function App() {
           
           // 各文字にランダムなオフセットを与える
           setOffsets(text.split('').map(() => ({
-            x: (Math.random() - 0.5) * shakeIntensity * (1 + normalizedVolume * 2),
-            y: (Math.random() - 0.5) * shakeIntensity * (1 + normalizedVolume * 2),
+            x: (Math.random() - 0.5) * shakeIntensity * (1 + normalizedVolume * 3),
+            y: (Math.random() - 0.5) * shakeIntensity * (1 + normalizedVolume * 3),
           })));
           
           setTimeout(() => setBeat(false), 50);
@@ -83,7 +83,7 @@ function App() {
   };
 
   const maxLength = text.length;
-  const fontSize = `min(${90 / maxLength}vw, 150px)`;
+  const fontSize = `min(${80 / maxLength}vh, 150px)`;
 
   return (
     <div style={{
@@ -111,7 +111,8 @@ function App() {
             fontSize: 14,
             letterSpacing: '0.05em',
             border: 'none',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            writingMode: 'vertical-rl',
           }}
         >
           TAP TO START
@@ -123,6 +124,7 @@ function App() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          writingMode: 'vertical-rl',
         }}>
           {text.split('').map((char, i) => (
             <span
@@ -152,29 +154,31 @@ function App() {
         color: 'rgba(255,255,255,0.4)',
         fontFamily: 'monospace',
         fontSize: 12,
+        writingMode: 'vertical-rl',
       }}>
-        <div>volume: {(volume * 100).toFixed(0)}%</div>
-        <div>beat: {beat ? '●' : '○'}</div>
+        <span>vol: {(volume * 100).toFixed(0)}%</span>
+        <span style={{ marginTop: 8 }}>beat: {beat ? '●' : '○'}</span>
       </div>
 
-      {/* Volume bar */}
+      {/* Volume bar - 横向き */}
       <div style={{
         position: 'absolute',
         bottom: 16,
         right: 16,
-        width: 8,
-        height: 100,
+        height: 8,
+        width: 100,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 4,
+        writingMode: 'horizontal-tb',
       }}>
         <div style={{
           position: 'absolute',
-          bottom: 0,
-          width: '100%',
-          height: `${volume * 100}%`,
+          left: 0,
+          height: '100%',
+          width: `${volume * 100}%`,
           backgroundColor: beat ? 'white' : 'rgba(255,255,255,0.5)',
           borderRadius: 4,
-          transition: 'height 0.05s',
+          transition: 'width 0.05s',
         }} />
       </div>
     </div>
