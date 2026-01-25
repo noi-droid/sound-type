@@ -1,24 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 
 function App() {
-  const [hasPermission, setHasPermission] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [volume, setVolume] = useState(0);
   const [beat, setBeat] = useState(false);
   const [offsets, setOffsets] = useState([]);
+  const [textIndex, setTextIndex] = useState(0);
   
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const prevVolumeRef = useRef(0);
   
-  const text = "SOUND";
-  const beatThreshold = 0.05; // ビート検出の閾値（小さいほど敏感）
-  const shakeIntensity = 40; // 揺れの強さ
+  const texts = ["SOUND", "BEAT", "MUSIC"];
+  const text = texts[textIndex];
+  const beatThreshold = 0.05;
+  const shakeIntensity = 40;
 
-  // オフセット初期化
+  // オフセット初期化（テキストが変わるたびに更新）
   useEffect(() => {
     setOffsets(text.split('').map(() => ({ x: 0, y: 0 })));
-  }, []);
+  }, [text]);
 
   const startListening = async () => {
     try {
@@ -34,10 +35,8 @@ function App() {
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
       
-      setHasPermission(true);
       setIsListening(true);
       
-      // 音量監視ループ
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       
       const checkVolume = () => {
@@ -45,26 +44,20 @@ function App() {
         
         analyserRef.current.getByteFrequencyData(dataArray);
         
-        // 平均音量を計算
         const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         const normalizedVolume = average / 255;
         
         setVolume(normalizedVolume);
         
-        // ビート検出（音量の急激な上昇）
         const volumeJump = normalizedVolume - prevVolumeRef.current;
         if (volumeJump > beatThreshold) {
           setBeat(true);
           
-          // 各文字にランダムなオフセットを与える
-          setOffsets(text.split('').map(() => ({
-            x: (Math.random() - 0.5) * shakeIntensity * (1 + normalizedVolume * 3),
-            y: (Math.random() - 0.5) * shakeIntensity * (1 + normalizedVolume * 3),
-          })));
+          // 文字列を次に切り替え
+          setTextIndex(prev => (prev + 1) % texts.length);
           
           setTimeout(() => setBeat(false), 50);
         } else {
-          // 徐々に元の位置に戻る
           setOffsets(prev => prev.map(offset => ({
             x: offset.x * 0.85,
             y: offset.y * 0.85,
@@ -82,7 +75,17 @@ function App() {
     }
   };
 
-  const maxLength = text.length;
+  // ビート時に揺れを適用
+  useEffect(() => {
+    if (beat) {
+      setOffsets(text.split('').map(() => ({
+        x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+        y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+      })));
+    }
+  }, [beat, text, volume]);
+
+  const maxLength = Math.max(...texts.map(t => t.length));
   const fontSize = `min(${80 / maxLength}vh, 150px)`;
 
   return (
@@ -128,7 +131,7 @@ function App() {
         }}>
           {text.split('').map((char, i) => (
             <span
-              key={i}
+              key={`${textIndex}-${i}`}
               style={{
                 fontSize: fontSize,
                 fontFamily: '"OTR Grotesk", system-ui, sans-serif',
@@ -158,9 +161,10 @@ function App() {
       }}>
         <span>vol: {(volume * 100).toFixed(0)}%</span>
         <span style={{ marginTop: 8 }}>beat: {beat ? '●' : '○'}</span>
+        <span style={{ marginTop: 8 }}>text: {textIndex + 1}/{texts.length}</span>
       </div>
 
-      {/* Volume bar - 横向き */}
+      {/* Volume bar */}
       <div style={{
         position: 'absolute',
         bottom: 16,
