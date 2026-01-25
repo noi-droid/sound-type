@@ -6,6 +6,7 @@ function App() {
   const [beat, setBeat] = useState(false);
   const [offsets, setOffsets] = useState([]);
   const [textIndex, setTextIndex] = useState(0);
+  const [isLandscape, setIsLandscape] = useState(false);
   
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -16,6 +17,17 @@ function App() {
   const showImage = textIndex === 2;
   const beatThreshold = 0.05;
   const shakeIntensity = 40;
+
+  // 画面の向きを自動判定
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+    
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    return () => window.removeEventListener('resize', checkOrientation);
+  }, []);
 
   useEffect(() => {
     setOffsets(text.split('').map(() => ({ x: 0, y: 0 })));
@@ -84,7 +96,9 @@ function App() {
   }, [beat, text, volume]);
 
   const maxLength = Math.max(...texts.map(t => t.length));
-  const fontSize = `min(${80 / maxLength}vh, 150px)`;
+  const fontSize = isLandscape 
+    ? `min(${80 / maxLength}vh, 150px)` 
+    : `min(${80 / maxLength}vw, 150px)`;
 
   return (
     <div style={{
@@ -113,7 +127,7 @@ function App() {
             letterSpacing: '0.05em',
             border: 'none',
             cursor: 'pointer',
-            writingMode: 'vertical-rl',
+            writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
           }}
         >
           TAP TO START
@@ -124,9 +138,9 @@ function App() {
       {isListening && showImage && (
         <div style={{
           position: 'absolute',
-          width: '100vh',
-          height: '100vw',
-          transform: 'rotate(90deg)',
+          width: isLandscape ? '100vh' : '100vw',
+          height: isLandscape ? '100vw' : '100vh',
+          transform: isLandscape ? 'rotate(90deg)' : 'none',
           zIndex: 1,
         }}>
           <img
@@ -149,7 +163,7 @@ function App() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          writingMode: 'vertical-rl',
+          writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
         }}>
           {text.split('').map((char, i) => (
             <span
@@ -171,6 +185,27 @@ function App() {
         </div>
       )}
 
+      {/* 向き切り替えボタン */}
+      <button
+        onClick={() => setIsLandscape(!isLandscape)}
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          padding: '8px 16px',
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          color: 'white',
+          fontFamily: 'monospace',
+          fontSize: 12,
+          border: '1px solid rgba(255,255,255,0.3)',
+          cursor: 'pointer',
+          zIndex: 10,
+          writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
+        }}
+      >
+        {isLandscape ? 'PORTRAIT' : 'LANDSCAPE'}
+      </button>
+
       {/* Debug */}
       <div style={{
         position: 'absolute',
@@ -179,12 +214,15 @@ function App() {
         color: 'rgba(255,255,255,0.4)',
         fontFamily: 'monospace',
         fontSize: 12,
-        writingMode: 'vertical-rl',
+        writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
+        display: 'flex',
+        flexDirection: isLandscape ? 'row' : 'column',
+        gap: 8,
         zIndex: 10,
       }}>
         <span>vol: {(volume * 100).toFixed(0)}%</span>
-        <span style={{ marginTop: 8 }}>beat: {beat ? '●' : '○'}</span>
-        <span style={{ marginTop: 8 }}>{text}{showImage ? ' + IMG' : ''}</span>
+        <span>beat: {beat ? '●' : '○'}</span>
+        <span>{text}{showImage ? ' + IMG' : ''}</span>
       </div>
 
       {/* Volume bar */}
@@ -192,21 +230,21 @@ function App() {
         position: 'absolute',
         bottom: 16,
         right: 16,
-        height: 8,
-        width: 100,
+        height: isLandscape ? 8 : 100,
+        width: isLandscape ? 100 : 8,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 4,
-        writingMode: 'horizontal-tb',
         zIndex: 10,
       }}>
         <div style={{
           position: 'absolute',
-          left: 0,
-          height: '100%',
-          width: `${volume * 100}%`,
+          left: isLandscape ? 0 : undefined,
+          bottom: isLandscape ? undefined : 0,
+          height: isLandscape ? '100%' : `${volume * 100}%`,
+          width: isLandscape ? `${volume * 100}%` : '100%',
           backgroundColor: beat ? 'white' : 'rgba(255,255,255,0.5)',
           borderRadius: 4,
-          transition: 'width 0.05s',
+          transition: isLandscape ? 'width 0.05s' : 'height 0.05s',
         }} />
       </div>
     </div>
