@@ -175,7 +175,7 @@ function App() {
           alignItems: 'center',
           justifyContent: 'center',
           writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
-gap: 16,
+gap: 8,
         }}>
           {text.split('\n').map((line, lineIndex) => (
             <div 
