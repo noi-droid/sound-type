@@ -11,15 +11,19 @@ function App() {
   const analyserRef = useRef(null);
   const prevVolumeRef = useRef(0);
   
-  const texts = ["SOUND", "BEAT", "MUSIC"];
+  const texts = ["SOUND", "BEAT", "MUSIC", "IMAGE"];
   const text = texts[textIndex];
+  const isImageMode = textIndex === 3;
   const beatThreshold = 0.05;
   const shakeIntensity = 40;
 
-  // オフセット初期化（テキストが変わるたびに更新）
   useEffect(() => {
-    setOffsets(text.split('').map(() => ({ x: 0, y: 0 })));
-  }, [text]);
+    if (!isImageMode) {
+      setOffsets(text.split('').map(() => ({ x: 0, y: 0 })));
+    } else {
+      setOffsets([{ x: 0, y: 0 }]);
+    }
+  }, [text, isImageMode]);
 
   const startListening = async () => {
     try {
@@ -53,7 +57,6 @@ function App() {
         if (volumeJump > beatThreshold) {
           setBeat(true);
           
-          // 文字列を次に切り替え
           setTextIndex(prev => (prev + 1) % texts.length);
           
           setTimeout(() => setBeat(false), 50);
@@ -75,17 +78,23 @@ function App() {
     }
   };
 
-  // ビート時に揺れを適用
   useEffect(() => {
     if (beat) {
-      setOffsets(text.split('').map(() => ({
-        x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-        y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-      })));
+      if (!isImageMode) {
+        setOffsets(text.split('').map(() => ({
+          x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+          y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+        })));
+      } else {
+        setOffsets([{
+          x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+          y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+        }]);
+      }
     }
-  }, [beat, text, volume]);
+  }, [beat, text, volume, isImageMode]);
 
-  const maxLength = Math.max(...texts.map(t => t.length));
+  const maxLength = Math.max(...texts.filter(t => t !== "IMAGE").map(t => t.length));
   const fontSize = `min(${80 / maxLength}vh, 150px)`;
 
   return (
@@ -122,7 +131,7 @@ function App() {
         </button>
       )}
 
-      {isListening && (
+      {isListening && !isImageMode && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -149,6 +158,21 @@ function App() {
         </div>
       )}
 
+      {isListening && isImageMode && (
+        <img
+          src="/images/1.png"
+          alt="Image"
+          style={{
+            maxHeight: '80vh',
+            maxWidth: '80vw',
+            objectFit: 'contain',
+            transform: `translate(${offsets[0]?.x || 0}px, ${offsets[0]?.y || 0}px)`,
+            transition: beat ? 'none' : 'transform 0.1s ease-out',
+            filter: beat ? 'brightness(1.3)' : 'none',
+          }}
+        />
+      )}
+
       {/* Debug */}
       <div style={{
         position: 'absolute',
@@ -161,7 +185,7 @@ function App() {
       }}>
         <span>vol: {(volume * 100).toFixed(0)}%</span>
         <span style={{ marginTop: 8 }}>beat: {beat ? '●' : '○'}</span>
-        <span style={{ marginTop: 8 }}>text: {textIndex + 1}/{texts.length}</span>
+        <span style={{ marginTop: 8 }}>{isImageMode ? 'IMG' : text}</span>
       </div>
 
       {/* Volume bar */}
