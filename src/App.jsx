@@ -110,6 +110,9 @@ function App() {
     ? `min(${90 / longestLine.length}vh, 120px)` 
     : `min(${100 / longestLine.length}vw, 120px)`;
 
+  // 行間の調整（0.9 = 詰める、1.0 = 普通、1.2 = 広め）
+  const lineHeight = 0.9;
+
   return (
     <div style={{
       position: 'fixed',
@@ -175,17 +178,19 @@ function App() {
           alignItems: 'center',
           justifyContent: 'center',
           writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
+          gap: 0,
         }}>
-       {text.split('\n').map((line, lineIndex) => (
-  <div 
-    key={lineIndex}
-    style={{
-      display: 'flex',
-      justifyContent: 'center',
-      paddingBottom: isLandscape ? 0 : '0.1em',
-      paddingLeft: isLandscape ? '0.1em' : 0,
-    }}
-  >
+          {text.split('\n').map((line, lineIndex) => (
+            <div 
+              key={lineIndex}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                padding: 0,
+                margin: 0,
+                lineHeight: lineHeight,
+              }}
+            >
               {line.split('').map((char, charIndex) => {
                 // 全体のインデックスを計算
                 const prevCharsCount = text.split('\n')
@@ -206,6 +211,7 @@ function App() {
                       transition: beat ? 'none' : 'transform 0.1s ease-out',
                       textShadow: 'none',
                       whiteSpace: 'pre',
+                      lineHeight: lineHeight,
                     }}
                   >
                     {char}
