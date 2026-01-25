@@ -175,16 +175,17 @@ function App() {
           alignItems: 'center',
           justifyContent: 'center',
           writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
-gap: 4,
         }}>
-          {text.split('\n').map((line, lineIndex) => (
-            <div 
-              key={lineIndex}
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
+       {text.split('\n').map((line, lineIndex) => (
+  <div 
+    key={lineIndex}
+    style={{
+      display: 'flex',
+      justifyContent: 'center',
+      paddingBottom: isLandscape ? 0 : '0.3em',
+      paddingLeft: isLandscape ? '0.3em' : 0,
+    }}
+  >
               {line.split('').map((char, charIndex) => {
                 // 全体のインデックスを計算
                 const prevCharsCount = text.split('\n')
