@@ -5,7 +5,6 @@ function App() {
   const [volume, setVolume] = useState(0);
   const [beat, setBeat] = useState(false);
   const [offsets, setOffsets] = useState([]);
-  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
   const [textIndex, setTextIndex] = useState(0);
   
   const audioContextRef = useRef(null);
@@ -62,10 +61,6 @@ function App() {
             x: offset.x * 0.85,
             y: offset.y * 0.85,
           })));
-          setImageOffset(prev => ({
-            x: prev.x * 0.85,
-            y: prev.y * 0.85,
-          }));
         }
         
         prevVolumeRef.current = normalizedVolume;
@@ -85,10 +80,6 @@ function App() {
         x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
         y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
       })));
-      setImageOffset({
-        x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-        y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-      });
     }
   }, [beat, text, volume]);
 
@@ -131,20 +122,23 @@ function App() {
 
       {/* 背景画像（MUSICのときだけ表示） */}
       {isListening && showImage && (
-        <img
-          src="/images/1.png"
-          alt="Image"
-          style={{
-            position: 'absolute',
-            width: '100vw',
-            height: '100vh',
-            objectFit: 'cover',
-            transform: `translate(${imageOffset.x}px, ${imageOffset.y}px)`,
-            transition: beat ? 'none' : 'transform 0.1s ease-out',
-            filter: beat ? 'brightness(1.3)' : 'none',
-            zIndex: 1,
-          }}
-        />
+        <div style={{
+          position: 'absolute',
+          width: '100vh',
+          height: '100vw',
+          transform: 'rotate(90deg)',
+          zIndex: 1,
+        }}>
+          <img
+            src="/images/1.png"
+            alt="Image"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        </div>
       )}
 
       {/* テキスト */}
@@ -168,7 +162,7 @@ function App() {
                 display: 'inline-block',
                 transform: `translate(${offsets[i]?.x || 0}px, ${offsets[i]?.y || 0}px)`,
                 transition: beat ? 'none' : 'transform 0.1s ease-out',
-                textShadow: beat ? '0 0 20px rgba(255,255,255,0.8)' : '0 0 10px rgba(0,0,0,0.5)',
+                textShadow: 'none',
               }}
             >
               {char}
