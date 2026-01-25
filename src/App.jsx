@@ -107,8 +107,8 @@ function App() {
     .flatMap(t => t.split('\n'))
     .reduce((a, b) => a.length > b.length ? a : b, '');
   const fontSize = isLandscape 
-    ? `min(${70 / longestLine.length}vh, 80px)` 
-    : `min(${85 / longestLine.length}vw, 80px)`;
+    ? `min(${90 / longestLine.length}vh, 120px)` 
+    : `min(${100 / longestLine.length}vw, 120px)`;
 
   return (
     <div style={{
@@ -175,6 +175,7 @@ function App() {
           alignItems: 'center',
           justifyContent: 'center',
           writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
+gap: 16,
         }}>
           {text.split('\n').map((line, lineIndex) => (
             <div 
