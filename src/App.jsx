@@ -182,8 +182,8 @@ function App() {
     style={{
       display: 'flex',
       justifyContent: 'center',
-      paddingBottom: isLandscape ? 0 : '0.3em',
-      paddingLeft: isLandscape ? '0.3em' : 0,
+      paddingBottom: isLandscape ? 0 : '0.1em',
+      paddingLeft: isLandscape ? '0.1em' : 0,
     }}
   >
               {line.split('').map((char, charIndex) => {
