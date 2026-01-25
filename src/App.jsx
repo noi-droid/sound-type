@@ -13,10 +13,10 @@ function App() {
   const prevVolumeRef = useRef(0);
   
   const texts = [
-  "THE PUNCTUM IS A STING",
-  "THERE IS NOTHING OUTSIDE THE TEXT",
-  "DESIRE IS A MACHINE"
-];
+    "THE PUNCTUM\nIS A STING",
+    "THERE IS NOTHING\nOUTSIDE THE TEXT",
+    "DESIRE IS\nA MACHINE"
+  ];
   const text = texts[textIndex];
   const showImage = textIndex === 2;
   const beatThreshold = 0.05;
@@ -33,8 +33,11 @@ function App() {
     return () => window.removeEventListener('resize', checkOrientation);
   }, []);
 
+  // 文字配列を作成（スペースも含む）
+  const chars = text.split('');
+  
   useEffect(() => {
-    setOffsets(text.split('').map(() => ({ x: 0, y: 0 })));
+    setOffsets(chars.map(() => ({ x: 0, y: 0 })));
   }, [text]);
 
   const startListening = async () => {
@@ -92,17 +95,20 @@ function App() {
 
   useEffect(() => {
     if (beat) {
-      setOffsets(text.split('').map(() => ({
+      setOffsets(chars.map(() => ({
         x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
         y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
       })));
     }
   }, [beat, text, volume]);
 
-  const maxLength = Math.max(...texts.map(t => t.length));
+  // 一番長い行でフォントサイズを計算
+  const longestLine = texts
+    .flatMap(t => t.split('\n'))
+    .reduce((a, b) => a.length > b.length ? a : b, '');
   const fontSize = isLandscape 
-    ? `min(${80 / maxLength}vh, 150px)` 
-    : `min(${80 / maxLength}vw, 150px)`;
+    ? `min(${70 / longestLine.length}vh, 80px)` 
+    : `min(${85 / longestLine.length}vw, 80px)`;
 
   return (
     <div style={{
@@ -165,26 +171,46 @@ function App() {
           position: 'relative',
           zIndex: 2,
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
         }}>
-          {text.split('').map((char, i) => (
-            <span
-              key={`${textIndex}-${i}`}
+          {text.split('\n').map((line, lineIndex) => (
+            <div 
+              key={lineIndex}
               style={{
-                fontSize: fontSize,
-                fontFamily: '"OTR Grotesk", system-ui, sans-serif',
-                fontWeight: 900,
-                color: 'white',
-                display: 'inline-block',
-                transform: `translate(${offsets[i]?.x || 0}px, ${offsets[i]?.y || 0}px)`,
-                transition: beat ? 'none' : 'transform 0.1s ease-out',
-                textShadow: 'none',
+                display: 'flex',
+                justifyContent: 'center',
               }}
             >
-              {char}
-            </span>
+              {line.split('').map((char, charIndex) => {
+                // 全体のインデックスを計算
+                const prevCharsCount = text.split('\n')
+                  .slice(0, lineIndex)
+                  .reduce((sum, l) => sum + l.length + 1, 0);
+                const i = prevCharsCount + charIndex;
+                
+                return (
+                  <span
+                    key={`${textIndex}-${lineIndex}-${charIndex}`}
+                    style={{
+                      fontSize: fontSize,
+                      fontFamily: '"OTR Grotesk", system-ui, sans-serif',
+                      fontWeight: 900,
+                      color: 'white',
+                      display: 'inline-block',
+                      transform: `translate(${offsets[i]?.x || 0}px, ${offsets[i]?.y || 0}px)`,
+                      transition: beat ? 'none' : 'transform 0.1s ease-out',
+                      textShadow: 'none',
+                      whiteSpace: 'pre',
+                    }}
+                  >
+                    {char}
+                  </span>
+                );
+              })}
+            </div>
           ))}
         </div>
       )}
@@ -226,7 +252,6 @@ function App() {
       }}>
         <span>vol: {(volume * 100).toFixed(0)}%</span>
         <span>beat: {beat ? '●' : '○'}</span>
-        <span>{text}{showImage ? ' + IMG' : ''}</span>
       </div>
 
       {/* Volume bar */}
