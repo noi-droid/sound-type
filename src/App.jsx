@@ -19,7 +19,7 @@ function App() {
   ];
   const text = texts[textIndex];
   const showImage = textIndex === 2;
-  const beatThreshold = 0.05;
+  const beatThreshold = 0.02;
   const shakeIntensity = 40;
 
   // 画面の向きを自動判定
