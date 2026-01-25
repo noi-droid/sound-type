@@ -12,7 +12,11 @@ function App() {
   const analyserRef = useRef(null);
   const prevVolumeRef = useRef(0);
   
-  const texts = ["SOUND", "BEAT", "MUSIC"];
+  const texts = [
+  "THE PUNCTUM IS A STING",
+  "THERE IS NOTHING OUTSIDE THE TEXT",
+  "DESIRE IS A MACHINE"
+];
   const text = texts[textIndex];
   const showImage = textIndex === 2;
   const beatThreshold = 0.05;
