@@ -112,7 +112,8 @@ function App() {
 
   // 行間の調整（0.9 = 詰める、1.0 = 普通、1.2 = 広め）
   const lineHeight = 0.9;
-
+// 文字間の調整（-0.05em = 詰める、0 = 普通、0.05em = 広げる）
+const letterSpacing = '-0.02em';
   return (
     <div style={{
       position: 'fixed',
