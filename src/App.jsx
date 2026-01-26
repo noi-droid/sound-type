@@ -9,7 +9,7 @@ function App() {
   const [offsets, setOffsets] = useState([]);
   const [isLandscape, setIsLandscape] = useState(false);
   const [transcript, setTranscript] = useState('SPEAK');
-  const [mode, setMode] = useState('preset');
+  const [mode, setMode] = useState('speech'); // デフォルトをspeechに
   const [textIndex, setTextIndex] = useState(0);
   const [freqText, setFreqText] = useState('LISTEN');
   
@@ -31,15 +31,10 @@ function App() {
     "DESIRE IS\nA MACHINE"
   ];
 
+  // キーワードと画像の対応（SPEECHモード用のみ）
   const speechKeywordImages = {
     'MAYA': '/images/maya.png',
     'NICO': '/images/nico.png',
-  };
-
-  const freqKeywordImages = {
-    'BASS': '/images/bass.png',
-    'HIGH': '/images/high.png',
-    'MIX': '/images/mix.png',
   };
 
   const detectSpeechKeyword = (text) => {
@@ -84,17 +79,17 @@ function App() {
   };
 
   const text = getText();
+  const chars = text.split('');
   
+  // 画像表示の判定（PRESETとSPEECHのみ）
   const presetShowImage = mode === 'preset' && textIndex === 2;
   const speechKeyword = mode === 'speech' ? detectSpeechKeyword(transcript) : null;
   const speechShowImage = mode === 'speech' && speechKeyword;
-  const freqShowImage = mode === 'frequency' && freqKeywordImages[freqText];
-  const showImage = presetShowImage || speechShowImage || freqShowImage;
+  const showImage = presetShowImage || speechShowImage;
   
   const getCurrentImage = () => {
     if (presetShowImage) return '/images/1.png';
     if (speechShowImage) return speechKeywordImages[speechKeyword];
-    if (freqShowImage) return freqKeywordImages[freqText];
     return null;
   };
   const currentImage = getCurrentImage();
@@ -112,8 +107,6 @@ function App() {
     return () => window.removeEventListener('resize', checkOrientation);
   }, []);
 
-  const chars = text.split('');
-  
   useEffect(() => {
     setOffsets(chars.map(() => ({ x: 0, y: 0 })));
   }, [text]);
@@ -182,6 +175,8 @@ function App() {
       const recognition = setupSpeechRecognition();
       if (recognition) {
         recognitionRef.current = recognition;
+        // デフォルトがspeechなので即開始
+        recognition.start();
       }
       
       setIsListening(true);
@@ -241,13 +236,6 @@ function App() {
           setTimeout(() => setBeat(false), 50);
         }
         
-        if (!beat) {
-          setOffsets(prev => prev.map(offset => ({
-            x: Math.abs(offset.x) < 0.5 ? 0 : offset.x * 0.85,
-            y: Math.abs(offset.y) < 0.5 ? 0 : offset.y * 0.85,
-          })));
-        }
-        
         prevVolumeRef.current = normalizedVolume;
         prevBassRef.current = bassAvg;
         prevHighRef.current = highAvg;
@@ -275,27 +263,30 @@ function App() {
     }
   }, [mode, isListening]);
 
-useEffect(() => {
-  if (beat && chars.length > 0) {
-    const intensity = mode === 'frequency' ? shakeIntensity * 0.3 : shakeIntensity;
-    const newOffsets = [];
-    for (let i = 0; i < chars.length; i++) {
-      newOffsets.push({
-        x: (Math.random() - 0.5) * intensity * (1 + volume * 3),
-        y: (Math.random() - 0.5) * intensity * (1 + volume * 3),
-      });
+  // 振動エフェクト
+  useEffect(() => {
+    if (beat && chars.length > 0) {
+      const intensity = mode === 'frequency' ? shakeIntensity * 0.3 : shakeIntensity;
+      const newOffsets = [];
+      for (let i = 0; i < chars.length; i++) {
+        newOffsets.push({
+          x: (Math.random() - 0.5) * intensity * (1 + volume * 3),
+          y: (Math.random() - 0.5) * intensity * (1 + volume * 3),
+        });
+      }
+      setOffsets(newOffsets);
+      
+      // 100ms後にリセット
+      setTimeout(() => {
+        setOffsets(prev => prev.map(() => ({ x: 0, y: 0 })));
+      }, 100);
     }
-    setOffsets(newOffsets);
-    
-    // 100ms後にリセット
-    setTimeout(() => {
-      setOffsets(chars.map(() => ({ x: 0, y: 0 })));
-    }, 100);
-  }
-}, [beat]);
+  }, [beat]);
 
   const longestLine = text.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
-  const charCount = Math.min(longestLine.length || 1, 15);
+const charCount = mode === 'preset' 
+  ? 8  // PRESET固定（大きめ）
+  : Math.min(longestLine.length || 1, 15);
 
   const fontSize = isLandscape 
     ? `max(min(${80 / charCount}vh, 12vh), 5vh)` 
@@ -305,9 +296,9 @@ useEffect(() => {
   const letterSpacing = '-0.02em';
 
   const cycleMode = () => {
-    if (mode === 'preset') setMode('speech');
-    else if (mode === 'speech') setMode('frequency');
-    else setMode('preset');
+    if (mode === 'speech') setMode('frequency');
+    else if (mode === 'frequency') setMode('preset');
+    else setMode('speech');
   };
 
   return (
@@ -392,7 +383,7 @@ useEffect(() => {
                 
                 return (
                   <span
-                    key={`${text}-${lineIndex}-${charIndex}`}
+                    key={`${lineIndex}-${charIndex}`}
                     style={{
                       fontSize: fontSize,
                       fontFamily: '"OTR Grotesk", system-ui, sans-serif',
