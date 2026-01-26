@@ -31,20 +31,17 @@ function App() {
     "DESIRE IS\nA MACHINE"
   ];
 
-  // キーワードと画像の対応（SPEECHモード用）
   const speechKeywordImages = {
     'MAYA': '/images/maya.png',
     'NICO': '/images/nico.png',
   };
 
-  // キーワードと画像の対応（FREQUENCYモード用）
   const freqKeywordImages = {
     'BASS': '/images/bass.png',
     'HIGH': '/images/high.png',
     'MIX': '/images/mix.png',
   };
 
-  // SPEECHモードでキーワードを検出
   const detectSpeechKeyword = (text) => {
     for (const keyword of Object.keys(speechKeywordImages)) {
       if (text.toUpperCase().includes(keyword)) {
@@ -88,7 +85,6 @@ function App() {
 
   const text = getText();
   
-  // 画像表示の判定
   const presetShowImage = mode === 'preset' && textIndex === 2;
   const speechKeyword = mode === 'speech' ? detectSpeechKeyword(transcript) : null;
   const speechShowImage = mode === 'speech' && speechKeyword;
@@ -247,8 +243,8 @@ function App() {
         
         if (!beat) {
           setOffsets(prev => prev.map(offset => ({
-            x: offset.x * 0.85,
-            y: offset.y * 0.85,
+            x: Math.abs(offset.x) < 0.5 ? 0 : offset.x * 0.85,
+            y: Math.abs(offset.y) < 0.5 ? 0 : offset.y * 0.85,
           })));
         }
         
@@ -289,7 +285,6 @@ function App() {
     }
   }, [beat, text, volume, mode]);
 
-  // 一番長い行の文字数でサイズを自動調整（小さくなりすぎない）
   const longestLine = text.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
   const charCount = Math.min(longestLine.length || 1, 15);
 
@@ -333,7 +328,6 @@ function App() {
             letterSpacing: '0.05em',
             border: 'none',
             cursor: 'pointer',
-            writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
           }}
         >
           TAP TO START
@@ -343,9 +337,8 @@ function App() {
       {isListening && showImage && currentImage && (
         <div style={{
           position: 'absolute',
-          width: isLandscape ? '100vh' : '100vw',
-          height: isLandscape ? '100vw' : '100vh',
-          transform: isLandscape ? 'rotate(90deg)' : 'none',
+          width: '100vw',
+          height: '100vh',
           zIndex: 1,
         }}>
           <img
@@ -368,7 +361,6 @@ function App() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
           gap: 0,
         }}>
           {text.split('\n').map((line, lineIndex) => (
@@ -376,6 +368,7 @@ function App() {
               key={lineIndex}
               style={{
                 display: 'flex',
+                flexDirection: 'row',
                 justifyContent: 'center',
                 padding: 0,
                 margin: 0,
@@ -429,7 +422,6 @@ function App() {
             border: '1px solid rgba(255,255,255,0.3)',
             cursor: 'pointer',
             zIndex: 10,
-            writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
           }}
         >
           {mode.toUpperCase()}
@@ -450,7 +442,6 @@ function App() {
           border: '1px solid rgba(255,255,255,0.3)',
           cursor: 'pointer',
           zIndex: 10,
-          writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
         }}
       >
         {isLandscape ? 'PORTRAIT' : 'LANDSCAPE'}
@@ -463,9 +454,8 @@ function App() {
         color: 'rgba(255,255,255,0.4)',
         fontFamily: 'monospace',
         fontSize: 12,
-        writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
         display: 'flex',
-        flexDirection: isLandscape ? 'row' : 'column',
+        flexDirection: 'column',
         gap: 8,
         zIndex: 10,
       }}>
@@ -481,44 +471,42 @@ function App() {
         bottom: 16,
         right: 16,
         display: 'flex',
-        flexDirection: isLandscape ? 'column' : 'row',
+        flexDirection: 'row',
         gap: 4,
         zIndex: 10,
       }}>
         <div style={{
-          height: isLandscape ? 8 : 100,
-          width: isLandscape ? 100 : 8,
+          height: 100,
+          width: 8,
           backgroundColor: 'rgba(255,255,255,0.1)',
           borderRadius: 4,
           position: 'relative',
         }}>
           <div style={{
             position: 'absolute',
-            left: isLandscape ? 0 : undefined,
-            bottom: isLandscape ? undefined : 0,
-            height: isLandscape ? '100%' : `${bassLevel * 100}%`,
-            width: isLandscape ? `${bassLevel * 100}%` : '100%',
+            bottom: 0,
+            height: `${bassLevel * 100}%`,
+            width: '100%',
             backgroundColor: 'rgba(255,255,255,0.5)',
             borderRadius: 4,
-            transition: isLandscape ? 'width 0.05s' : 'height 0.05s',
+            transition: 'height 0.05s',
           }} />
         </div>
         <div style={{
-          height: isLandscape ? 8 : 100,
-          width: isLandscape ? 100 : 8,
+          height: 100,
+          width: 8,
           backgroundColor: 'rgba(255,255,255,0.1)',
           borderRadius: 4,
           position: 'relative',
         }}>
           <div style={{
             position: 'absolute',
-            left: isLandscape ? 0 : undefined,
-            bottom: isLandscape ? undefined : 0,
-            height: isLandscape ? '100%' : `${highLevel * 100}%`,
-            width: isLandscape ? `${highLevel * 100}%` : '100%',
+            bottom: 0,
+            height: `${highLevel * 100}%`,
+            width: '100%',
             backgroundColor: 'rgba(255,255,255,0.5)',
             borderRadius: 4,
-            transition: isLandscape ? 'width 0.05s' : 'height 0.05s',
+            transition: 'height 0.05s',
           }} />
         </div>
       </div>
