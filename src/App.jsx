@@ -3,26 +3,109 @@ import { useState, useEffect, useRef } from 'react';
 function App() {
   const [isListening, setIsListening] = useState(false);
   const [volume, setVolume] = useState(0);
+  const [bassLevel, setBassLevel] = useState(0);
+  const [highLevel, setHighLevel] = useState(0);
   const [beat, setBeat] = useState(false);
   const [offsets, setOffsets] = useState([]);
-  const [textIndex, setTextIndex] = useState(0);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [transcript, setTranscript] = useState('SPEAK');
+  const [mode, setMode] = useState('preset');
+  const [textIndex, setTextIndex] = useState(0);
+  const [freqText, setFreqText] = useState('LISTEN');
   
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const prevVolumeRef = useRef(0);
+  const prevBassRef = useRef(0);
+  const prevHighRef = useRef(0);
+  const recognitionRef = useRef(null);
+  const modeRef = useRef(mode);
+  
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
   
   const texts = [
     "THE PUNCTUM\nIS A STING",
     "THERE IS NOTHING\nOUTSIDE THE TEXT",
     "DESIRE IS\nA MACHINE"
   ];
-  const text = texts[textIndex];
-  const showImage = textIndex === 2;
+
+  // キーワードと画像の対応（SPEECHモード用）
+  const speechKeywordImages = {
+    'MAYA': '/images/maya.png',
+    'NICO': '/images/nico.png',
+  };
+
+  // キーワードと画像の対応（FREQUENCYモード用）
+  const freqKeywordImages = {
+    'BASS': '/images/bass.png',
+    'HIGH': '/images/high.png',
+    'MIX': '/images/mix.png',
+  };
+
+  // SPEECHモードでキーワードを検出
+  const detectSpeechKeyword = (text) => {
+    for (const keyword of Object.keys(speechKeywordImages)) {
+      if (text.toUpperCase().includes(keyword)) {
+        return keyword;
+      }
+    }
+    return null;
+  };
+  
+  const maxCharsPerLine = 25;
+  const maxLines = 3;
+
+  const addLineBreaks = (str) => {
+    const words = str.split(' ');
+    let lines = [];
+    let currentLine = '';
+    
+    words.forEach(word => {
+      if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
+        currentLine = (currentLine + ' ' + word).trim();
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+    
+    if (lines.length > maxLines) {
+      lines = lines.slice(-maxLines);
+    }
+    
+    return lines.join('\n');
+  };
+
+  const getText = () => {
+    if (mode === 'preset') return texts[textIndex];
+    if (mode === 'speech') return addLineBreaks(transcript);
+    if (mode === 'frequency') return freqText;
+    return '';
+  };
+
+  const text = getText();
+  
+  // 画像表示の判定
+  const presetShowImage = mode === 'preset' && textIndex === 2;
+  const speechKeyword = mode === 'speech' ? detectSpeechKeyword(transcript) : null;
+  const speechShowImage = mode === 'speech' && speechKeyword;
+  const freqShowImage = mode === 'frequency' && freqKeywordImages[freqText];
+  const showImage = presetShowImage || speechShowImage || freqShowImage;
+  
+  const getCurrentImage = () => {
+    if (presetShowImage) return '/images/1.png';
+    if (speechShowImage) return speechKeywordImages[speechKeyword];
+    if (freqShowImage) return freqKeywordImages[freqText];
+    return null;
+  };
+  const currentImage = getCurrentImage();
+
   const beatThreshold = 0.02;
   const shakeIntensity = 40;
 
-  // 画面の向きを自動判定
   useEffect(() => {
     const checkOrientation = () => {
       setIsLandscape(window.innerWidth > window.innerHeight);
@@ -33,12 +116,58 @@ function App() {
     return () => window.removeEventListener('resize', checkOrientation);
   }, []);
 
-  // 文字配列を作成（スペースも含む）
   const chars = text.split('');
   
   useEffect(() => {
     setOffsets(chars.map(() => ({ x: 0, y: 0 })));
   }, [text]);
+
+  const setupSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      console.error('Speech recognition not supported');
+      return null;
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+      
+      const newText = (finalTranscript || interimTranscript).toUpperCase().trim();
+      if (newText) {
+        setTranscript(newText);
+      }
+    };
+    
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+    };
+    
+    recognition.onend = () => {
+      if (modeRef.current === 'speech') {
+        try {
+          recognition.start();
+        } catch (e) {}
+      }
+    };
+    
+    return recognition;
+  };
 
   const startListening = async () => {
     try {
@@ -48,15 +177,21 @@ function App() {
       const analyser = audioContext.createAnalyser();
       const source = audioContext.createMediaStreamSource(stream);
       
-      analyser.fftSize = 256;
+      analyser.fftSize = 512;
       source.connect(analyser);
       
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
       
+      const recognition = setupSpeechRecognition();
+      if (recognition) {
+        recognitionRef.current = recognition;
+      }
+      
       setIsListening(true);
       
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
       
       const checkVolume = () => {
         if (!analyserRef.current) return;
@@ -65,17 +200,52 @@ function App() {
         
         const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         const normalizedVolume = average / 255;
-        
         setVolume(normalizedVolume);
         
+        const bassRange = dataArray.slice(0, 10);
+        const bassAvg = bassRange.reduce((a, b) => a + b) / bassRange.length / 255;
+        setBassLevel(bassAvg);
+        
+        const highRange = dataArray.slice(40, 80);
+        const highAvg = highRange.reduce((a, b) => a + b) / highRange.length / 255;
+        setHighLevel(highAvg);
+        
         const volumeJump = normalizedVolume - prevVolumeRef.current;
-        if (volumeJump > beatThreshold) {
+        
+        const currentMode = modeRef.current;
+        
+        if (currentMode === 'frequency') {
+          const bassStrong = bassAvg > 0.2;
+          const highStrong = highAvg > 0.02;
+
+          let newFreqText = '...';
+
+          if (bassStrong && bassAvg > highAvg * 5) {
+            newFreqText = 'BASS';
+          } else if (highStrong && highAvg > bassAvg * 0.2) {
+            newFreqText = 'HIGH';
+          } else if (bassStrong || highStrong) {
+            newFreqText = 'MIX';
+          }
+
+          setFreqText(prev => {
+            if (prev !== newFreqText) {
+              setBeat(true);
+              setTimeout(() => setBeat(false), 100);
+            }
+            return newFreqText;
+          });
+        } else if (volumeJump > beatThreshold) {
           setBeat(true);
           
-          setTextIndex(prev => (prev + 1) % texts.length);
+          if (currentMode === 'preset') {
+            setTextIndex(prev => (prev + 1) % texts.length);
+          }
           
           setTimeout(() => setBeat(false), 50);
-        } else {
+        }
+        
+        if (!beat) {
           setOffsets(prev => prev.map(offset => ({
             x: offset.x * 0.85,
             y: offset.y * 0.85,
@@ -83,6 +253,8 @@ function App() {
         }
         
         prevVolumeRef.current = normalizedVolume;
+        prevBassRef.current = bassAvg;
+        prevHighRef.current = highAvg;
         requestAnimationFrame(checkVolume);
       };
       
@@ -94,26 +266,46 @@ function App() {
   };
 
   useEffect(() => {
+    if (!isListening || !recognitionRef.current) return;
+    
+    if (mode === 'speech') {
+      try {
+        recognitionRef.current.start();
+      } catch (e) {}
+    } else {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+  }, [mode, isListening]);
+
+  useEffect(() => {
     if (beat) {
+      const intensity = mode === 'frequency' ? shakeIntensity * 0.3 : shakeIntensity;
       setOffsets(chars.map(() => ({
-        x: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
-        y: (Math.random() - 0.5) * shakeIntensity * (1 + volume * 3),
+        x: (Math.random() - 0.5) * intensity * (1 + volume * 3),
+        y: (Math.random() - 0.5) * intensity * (1 + volume * 3),
       })));
     }
-  }, [beat, text, volume]);
+  }, [beat, text, volume, mode]);
 
-  // 一番長い行でフォントサイズを計算
-  const longestLine = texts
-    .flatMap(t => t.split('\n'))
-    .reduce((a, b) => a.length > b.length ? a : b, '');
+  // 一番長い行の文字数でサイズを自動調整（小さくなりすぎない）
+  const longestLine = text.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
+  const charCount = Math.min(longestLine.length || 1, 15);
+
   const fontSize = isLandscape 
-    ? `min(${90 / longestLine.length}vh, 120px)` 
-    : `min(${100 / longestLine.length}vw, 120px)`;
+    ? `max(min(${80 / charCount}vh, 12vh), 5vh)` 
+    : `max(min(${90 / charCount}vw, 10vw), 4vw)`;
 
-  // 行間の調整（0.9 = 詰める、1.0 = 普通、1.2 = 広め）
   const lineHeight = 0.9;
-// 文字間の調整（-0.05em = 詰める、0 = 普通、0.05em = 広げる）
-const letterSpacing = '-0.02em';
+  const letterSpacing = '-0.02em';
+
+  const cycleMode = () => {
+    if (mode === 'preset') setMode('speech');
+    else if (mode === 'speech') setMode('frequency');
+    else setMode('preset');
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -148,8 +340,7 @@ const letterSpacing = '-0.02em';
         </button>
       )}
 
-      {/* 背景画像（MUSICのときだけ表示） */}
-      {isListening && showImage && (
+      {isListening && showImage && currentImage && (
         <div style={{
           position: 'absolute',
           width: isLandscape ? '100vh' : '100vw',
@@ -158,7 +349,7 @@ const letterSpacing = '-0.02em';
           zIndex: 1,
         }}>
           <img
-            src="/images/1.png"
+            src={currentImage}
             alt="Image"
             style={{
               width: '100%',
@@ -169,7 +360,6 @@ const letterSpacing = '-0.02em';
         </div>
       )}
 
-      {/* テキスト */}
       {isListening && (
         <div style={{
           position: 'relative',
@@ -193,7 +383,6 @@ const letterSpacing = '-0.02em';
               }}
             >
               {line.split('').map((char, charIndex) => {
-                // 全体のインデックスを計算
                 const prevCharsCount = text.split('\n')
                   .slice(0, lineIndex)
                   .reduce((sum, l) => sum + l.length + 1, 0);
@@ -201,7 +390,7 @@ const letterSpacing = '-0.02em';
                 
                 return (
                   <span
-                    key={`${textIndex}-${lineIndex}-${charIndex}`}
+                    key={`${text}-${lineIndex}-${charIndex}`}
                     style={{
                       fontSize: fontSize,
                       fontFamily: '"OTR Grotesk", system-ui, sans-serif',
@@ -213,6 +402,7 @@ const letterSpacing = '-0.02em';
                       textShadow: 'none',
                       whiteSpace: 'pre',
                       lineHeight: lineHeight,
+                      letterSpacing: letterSpacing,
                     }}
                   >
                     {char}
@@ -224,7 +414,28 @@ const letterSpacing = '-0.02em';
         </div>
       )}
 
-      {/* 向き切り替えボタン */}
+      {isListening && (
+        <button
+          onClick={cycleMode}
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            padding: '8px 16px',
+            backgroundColor: mode === 'frequency' ? 'rgba(100,100,255,0.3)' : mode === 'speech' ? 'rgba(255,100,100,0.3)' : 'rgba(255,255,255,0.1)',
+            color: 'white',
+            fontFamily: 'monospace',
+            fontSize: 12,
+            border: '1px solid rgba(255,255,255,0.3)',
+            cursor: 'pointer',
+            zIndex: 10,
+            writingMode: isLandscape ? 'vertical-rl' : 'horizontal-tb',
+          }}
+        >
+          {mode.toUpperCase()}
+        </button>
+      )}
+
       <button
         onClick={() => setIsLandscape(!isLandscape)}
         style={{
@@ -245,7 +456,6 @@ const letterSpacing = '-0.02em';
         {isLandscape ? 'PORTRAIT' : 'LANDSCAPE'}
       </button>
 
-      {/* Debug */}
       <div style={{
         position: 'absolute',
         bottom: 16,
@@ -260,30 +470,57 @@ const letterSpacing = '-0.02em';
         zIndex: 10,
       }}>
         <span>vol: {(volume * 100).toFixed(0)}%</span>
-        <span>beat: {beat ? '●' : '○'}</span>
+        <span>bass: {(bassLevel * 100).toFixed(0)}%</span>
+        <span>high: {(highLevel * 100).toFixed(0)}%</span>
+        <span>mode: {mode}</span>
+        {speechKeyword && <span>keyword: {speechKeyword}</span>}
       </div>
 
-      {/* Volume bar */}
       <div style={{
         position: 'absolute',
         bottom: 16,
         right: 16,
-        height: isLandscape ? 8 : 100,
-        width: isLandscape ? 100 : 8,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 4,
+        display: 'flex',
+        flexDirection: isLandscape ? 'column' : 'row',
+        gap: 4,
         zIndex: 10,
       }}>
         <div style={{
-          position: 'absolute',
-          left: isLandscape ? 0 : undefined,
-          bottom: isLandscape ? undefined : 0,
-          height: isLandscape ? '100%' : `${volume * 100}%`,
-          width: isLandscape ? `${volume * 100}%` : '100%',
-          backgroundColor: beat ? 'white' : 'rgba(255,255,255,0.5)',
+          height: isLandscape ? 8 : 100,
+          width: isLandscape ? 100 : 8,
+          backgroundColor: 'rgba(255,255,255,0.1)',
           borderRadius: 4,
-          transition: isLandscape ? 'width 0.05s' : 'height 0.05s',
-        }} />
+          position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute',
+            left: isLandscape ? 0 : undefined,
+            bottom: isLandscape ? undefined : 0,
+            height: isLandscape ? '100%' : `${bassLevel * 100}%`,
+            width: isLandscape ? `${bassLevel * 100}%` : '100%',
+            backgroundColor: 'rgba(255,255,255,0.5)',
+            borderRadius: 4,
+            transition: isLandscape ? 'width 0.05s' : 'height 0.05s',
+          }} />
+        </div>
+        <div style={{
+          height: isLandscape ? 8 : 100,
+          width: isLandscape ? 100 : 8,
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          borderRadius: 4,
+          position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute',
+            left: isLandscape ? 0 : undefined,
+            bottom: isLandscape ? undefined : 0,
+            height: isLandscape ? '100%' : `${highLevel * 100}%`,
+            width: isLandscape ? `${highLevel * 100}%` : '100%',
+            backgroundColor: 'rgba(255,255,255,0.5)',
+            borderRadius: 4,
+            transition: isLandscape ? 'width 0.05s' : 'height 0.05s',
+          }} />
+        </div>
       </div>
     </div>
   );
