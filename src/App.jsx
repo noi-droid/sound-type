@@ -275,15 +275,24 @@ function App() {
     }
   }, [mode, isListening]);
 
-// useEffect(() => {
-//   if (beat) {
-//     const intensity = mode === 'frequency' ? shakeIntensity * 0.3 : shakeIntensity;
-//     setOffsets(chars.map(() => ({
-//       x: (Math.random() - 0.5) * intensity * (1 + volume * 3),
-//       y: (Math.random() - 0.5) * intensity * (1 + volume * 3),
-//     })));
-//   }
-// }, [beat, text, volume, mode]);
+useEffect(() => {
+  if (beat && chars.length > 0) {
+    const intensity = mode === 'frequency' ? shakeIntensity * 0.3 : shakeIntensity;
+    const newOffsets = [];
+    for (let i = 0; i < chars.length; i++) {
+      newOffsets.push({
+        x: (Math.random() - 0.5) * intensity * (1 + volume * 3),
+        y: (Math.random() - 0.5) * intensity * (1 + volume * 3),
+      });
+    }
+    setOffsets(newOffsets);
+    
+    // 100ms後にリセット
+    setTimeout(() => {
+      setOffsets(chars.map(() => ({ x: 0, y: 0 })));
+    }, 100);
+  }
+}, [beat]);
 
   const longestLine = text.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
   const charCount = Math.min(longestLine.length || 1, 15);
