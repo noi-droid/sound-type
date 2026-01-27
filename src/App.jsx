@@ -408,7 +408,7 @@ if (newText) {
                       whiteSpace: 'pre',
                       lineHeight: lineHeight,
                       letterSpacing: letterSpacing,
-                      mixBlendMode: 'difference',
+                      //mixBlendMode: 'difference',
                     }}
                   >
                     {char}
@@ -428,11 +428,11 @@ if (newText) {
             top: 16,
             left: 16,
             padding: '8px 16px',
-            backgroundColor: mode === 'frequency' ? 'rgba(100,100,255,0.3)' : mode === 'speech' ? 'rgba(255,100,100,0.3)' : 'rgba(255,255,255,0.1)',
+            backgroundColor: mode === 'frequency' ? 'rgba(100,100,255,0.0)' : mode === 'speech' ? 'rgba(255,100,100,0.0)' : 'rgba(255,255,255,0.0)',
             color: 'white',
             fontFamily: 'monospace',
             fontSize: 12,
-            border: '1px solid rgba(255,255,255,0.3)',
+            border: 'none',
             cursor: 'pointer',
             zIndex: 10,
           }}
