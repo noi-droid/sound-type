@@ -32,18 +32,21 @@ function App() {
   ];
 
   const speechKeywordImages = {
-    'MAYA': '/images/maya.png',
-    'NICO': '/images/nico.png',
-  };
+  'MAYA': '/images/maya.png',
+  'NICO': '/images/nico.png',
+  'HE': '/images/he.png',
+  'HIS': '/images/he.png',
+};
 
   const detectSpeechKeyword = (text) => {
-    for (const keyword of Object.keys(speechKeywordImages)) {
-      if (text.toUpperCase().includes(keyword)) {
-        return keyword;
-      }
+  for (const keyword of Object.keys(speechKeywordImages)) {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    if (regex.test(text)) {
+      return keyword;
     }
-    return null;
-  };
+  }
+  return null;
+};
   
   const maxCharsPerLine = 16;
   const maxLines = 3;
@@ -92,8 +95,8 @@ function App() {
   };
   const currentImage = getCurrentImage();
 
-  const beatThreshold = 0.02;
-  const shakeIntensity = 40;
+  const beatThreshold = 0.025;
+  const shakeIntensity = 30;
 
   useEffect(() => {
     const checkOrientation = () => {
@@ -135,10 +138,29 @@ function App() {
         }
       }
       
-      const newText = (finalTranscript || interimTranscript).toUpperCase().trim();
-      if (newText) {
-        setTranscript(newText);
-      }
+      let newText = (finalTranscript || interimTranscript).toUpperCase().trim();
+
+// 単語の置き換え
+const substitutions = {
+  'DEFEND': 'HIDE',
+  'DEFENDS': 'HIDES',
+  'DEFENDED': 'HID',
+  'DEFENDING': 'HIDING',
+  'PROTECT': 'RESTRICT',
+  'PROTECTS': 'RESTRICTS',
+  'PROTECTED': 'RESTRICTED',
+  'PROTECTING': 'RESTRICTING',
+  'SECURITY': 'SURVEILLANCE',
+};
+
+Object.keys(substitutions).forEach(word => {
+  const regex = new RegExp(`\\b${word}\\b`, 'g');
+  newText = newText.replace(regex, substitutions[word]);
+});
+
+if (newText) {
+  setTranscript(newText);
+}
     };
     
     recognition.onerror = (event) => {
@@ -351,6 +373,7 @@ function App() {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 0,
+          //mixBlendMode: 'difference',
         }}>
           {text.split('\n').map((line, lineIndex) => (
             <div 
@@ -377,7 +400,7 @@ function App() {
                       fontSize: fontSize,
                       fontFamily: '"OTR Grotesk", system-ui, sans-serif',
                       fontWeight: 900,
-                      color: 'white',
+                      color: 'blue',
                       display: 'inline-block',
                       transform: `translate(${offsets[i]?.x || 0}px, ${offsets[i]?.y || 0}px)`,
                       transition: beat ? 'none' : 'transform 0.1s ease-out',
@@ -385,6 +408,7 @@ function App() {
                       whiteSpace: 'pre',
                       lineHeight: lineHeight,
                       letterSpacing: letterSpacing,
+                      mixBlendMode: 'difference',
                     }}
                   >
                     {char}
@@ -424,11 +448,11 @@ function App() {
           top: 16,
           right: 16,
           padding: '8px 16px',
-          backgroundColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(255,255,255,0.0)',
           color: 'white',
           fontFamily: 'monospace',
           fontSize: 12,
-          border: '1px solid rgba(255,255,255,0.3)',
+          border: 'none',
           cursor: 'pointer',
           zIndex: 10,
         }}
