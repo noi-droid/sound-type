@@ -9,7 +9,7 @@ function App() {
   const [offsets, setOffsets] = useState([]);
   const [isLandscape, setIsLandscape] = useState(false);
   const [transcript, setTranscript] = useState('SPEAK');
-  const [mode, setMode] = useState('speech'); // デフォルトをspeechに
+  const [mode, setMode] = useState('speech');
   const [textIndex, setTextIndex] = useState(0);
   const [freqText, setFreqText] = useState('LISTEN');
   
@@ -31,7 +31,6 @@ function App() {
     "DESIRE IS\nA MACHINE"
   ];
 
-  // キーワードと画像の対応（SPEECHモード用のみ）
   const speechKeywordImages = {
     'MAYA': '/images/maya.png',
     'NICO': '/images/nico.png',
@@ -46,7 +45,7 @@ function App() {
     return null;
   };
   
-  const maxCharsPerLine = 25;
+  const maxCharsPerLine = 16;
   const maxLines = 3;
 
   const addLineBreaks = (str) => {
@@ -81,7 +80,6 @@ function App() {
   const text = getText();
   const chars = text.split('');
   
-  // 画像表示の判定（PRESETとSPEECHのみ）
   const presetShowImage = mode === 'preset' && textIndex === 2;
   const speechKeyword = mode === 'speech' ? detectSpeechKeyword(transcript) : null;
   const speechShowImage = mode === 'speech' && speechKeyword;
@@ -175,7 +173,6 @@ function App() {
       const recognition = setupSpeechRecognition();
       if (recognition) {
         recognitionRef.current = recognition;
-        // デフォルトがspeechなので即開始
         recognition.start();
       }
       
@@ -263,7 +260,6 @@ function App() {
     }
   }, [mode, isListening]);
 
-  // 振動エフェクト
   useEffect(() => {
     if (beat && chars.length > 0) {
       const intensity = mode === 'frequency' ? shakeIntensity * 0.3 : shakeIntensity;
@@ -276,21 +272,14 @@ function App() {
       }
       setOffsets(newOffsets);
       
-      // 100ms後にリセット
       setTimeout(() => {
         setOffsets(prev => prev.map(() => ({ x: 0, y: 0 })));
       }, 100);
     }
   }, [beat]);
 
-  const longestLine = text.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
-const charCount = mode === 'preset' 
-  ? 8  // PRESET固定（大きめ）
-  : Math.min(longestLine.length || 1, 15);
-
-  const fontSize = isLandscape 
-    ? `max(min(${80 / charCount}vh, 12vh), 5vh)` 
-    : `max(min(${90 / charCount}vw, 10vw), 4vw)`;
+  // 80vw / 16文字 = 5vw per character
+  const fontSize = '9vw';
 
   const lineHeight = 0.9;
   const letterSpacing = '-0.02em';
@@ -337,8 +326,8 @@ const charCount = mode === 'preset'
       {isListening && showImage && currentImage && (
         <div style={{
           position: 'absolute',
-          width: '100vw',
-          height: '100vh',
+          width: '60vw',
+          height: '60vh',
           zIndex: 1,
         }}>
           <img
