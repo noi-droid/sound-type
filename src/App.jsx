@@ -41,11 +41,11 @@ function App() {
   
   // オプション1: 背景色を変える
   const freqBackgroundColors = {
-    'BASS': '#330000',  // 暗い赤
-    'HIGH': '#000033',  // 暗い青
-    'MIX': '#330033',   // 暗い紫
+    'BASS': '#000000',  // 黒
+    'HIGH': '#FFFFFF',  // 白
+    'MIX': '#ff0000',   // 暗い紫
   };
-  const useFreqBackgroundColor = true;  // falseにすると無効
+  const useFreqBackgroundColor = false;  // falseにすると無効
 
   // オプション2: 背景画像を表示
   const freqBackgroundImages = {
@@ -53,7 +53,7 @@ function App() {
     'HIGH': '/images/high.png',
     'MIX': '/images/mix.png',
   };
-  const useFreqBackgroundImage = false;  // trueにすると有効
+  const useFreqBackgroundImage = true;  // trueにすると有効
 
   const detectSpeechKeyword = (text) => {
     for (const keyword of Object.keys(speechKeywordImages)) {
@@ -324,8 +324,8 @@ function App() {
   const charCount = mode === 'frequency' ? 4 : 8;
 
   const fontSize = isLandscape 
-    ? `min(${80 / charCount}vh, 12vh)` 
-    : `min(${90 / charCount}vw, 10vw)`;
+  ? (mode === 'frequency' ? '25vh' : `min(${80 / charCount}vh, 12vh)`)
+  : (mode === 'frequency' ? '30vw' : `min(${90 / charCount}vw, 10vw)`);
 
   const lineHeight = 0.9;
   const letterSpacing = '-0.02em';
@@ -458,13 +458,14 @@ function App() {
             top: 16,
             left: 16,
             padding: '8px 16px',
-            backgroundColor: mode === 'frequency' ? 'rgba(100,100,255,0.3)' : mode === 'speech' ? 'rgba(255,100,100,0.3)' : 'rgba(255,255,255,0.1)',
+            backgroundColor: mode === 'frequency' ? 'rgba(100,100,255,0.0)' : mode === 'speech' ? 'rgba(255,100,100,0.3)' : 'rgba(255,255,255,0.1)',
             color: 'white',
             fontFamily: 'monospace',
             fontSize: 12,
-            border: '1px solid rgba(255,255,255,0.3)',
+            border: '1px solid rgba(255,255,255,0.0)',
             cursor: 'pointer',
             zIndex: 10,
+            mixBlendMode: 'difference',
           }}
         >
           {mode.toUpperCase()}
@@ -478,13 +479,14 @@ function App() {
           top: 16,
           right: 16,
           padding: '8px 16px',
-          backgroundColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(255,255,255,0.0)',
           color: 'white',
           fontFamily: 'monospace',
           fontSize: 12,
-          border: '1px solid rgba(255,255,255,0.3)',
+          border: '1px solid rgba(255,255,255,0.0)',
           cursor: 'pointer',
           zIndex: 10,
+          mixBlendMode: 'difference',
         }}
       >
         {isLandscape ? 'PORTRAIT' : 'LANDSCAPE'}
@@ -492,15 +494,16 @@ function App() {
 
       <div style={{
         position: 'absolute',
-        bottom: 16,
-        left: 16,
-        color: 'rgba(255,255,255,0.4)',
+        bottom: 32,
+        left: 32,
+        color: 'rgba(255,255,255,0.3)',
         fontFamily: 'monospace',
         fontSize: 12,
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 4,
         zIndex: 10,
+        mixBlendMode: 'difference',
       }}>
         <span>vol: {(volume * 100).toFixed(0)}%</span>
         <span>bass: {(bassLevel * 100).toFixed(0)}%</span>
@@ -511,8 +514,8 @@ function App() {
 
       <div style={{
         position: 'absolute',
-        bottom: 16,
-        right: 16,
+        bottom: 32,
+        right: 32,
         display: 'flex',
         flexDirection: 'row',
         gap: 4,
