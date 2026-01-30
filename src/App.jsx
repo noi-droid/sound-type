@@ -12,6 +12,9 @@ function App() {
   const [mode, setMode] = useState('speech');
   const [textIndex, setTextIndex] = useState(0);
   const [freqText, setFreqText] = useState('');
+  const [bassThreshold, setBassThreshold] = useState(0.2);
+  const [highThreshold, setHighThreshold] = useState(0.02);
+  const [showSliders, setShowSliders] = useState(false);
   
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -20,10 +23,20 @@ function App() {
   const prevHighRef = useRef(0);
   const recognitionRef = useRef(null);
   const modeRef = useRef(mode);
+  const bassThresholdRef = useRef(bassThreshold);
+  const highThresholdRef = useRef(highThreshold);
   
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  useEffect(() => {
+    bassThresholdRef.current = bassThreshold;
+  }, [bassThreshold]);
+
+  useEffect(() => {
+    highThresholdRef.current = highThreshold;
+  }, [highThreshold]);
   
   const texts = [
     "THE PUNCTUM\nIS A STING",
@@ -245,8 +258,8 @@ function App() {
         const currentMode = modeRef.current;
         
         if (currentMode === 'frequency') {
-          const bassStrong = bassAvg > 0.2;
-          const highStrong = highAvg > 0.02;
+          const bassStrong = bassAvg > bassThresholdRef.current;
+          const highStrong = highAvg > highThresholdRef.current;
 
           let newFreqText = '';
 
@@ -511,6 +524,63 @@ function App() {
         <span>mode: {mode}</span>
         {speechKeyword && <span>keyword: {speechKeyword}</span>}
       </div>
+
+      {isListening && mode === 'frequency' && (
+        <div style={{
+          position: 'absolute',
+          bottom: 150,
+          left: 32,
+          color: 'white',
+          fontFamily: 'monospace',
+          fontSize: 12,
+          zIndex: 10,
+          mixBlendMode: 'difference',
+        }}>
+          <button 
+            onClick={() => setShowSliders(!showSliders)}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: 'none',
+              padding: '4px 8px',
+              marginBottom: 8,
+              cursor: 'pointer',
+              mixBlendMode: 'difference',
+            }}
+          >
+            {showSliders ? 'HIDE' : 'TUNE'}
+          </button>
+          
+          {showSliders && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label>
+                BASS: {bassThreshold.toFixed(2)}
+                <input 
+                  type="range" 
+                  min="0.05" 
+                  max="0.5" 
+                  step="0.01"
+                  value={bassThreshold}
+                  onChange={(e) => setBassThreshold(parseFloat(e.target.value))}
+                  style={{ width: 100, marginLeft: 8 }}
+                />
+              </label>
+              <label>
+                HIGH: {highThreshold.toFixed(2)}
+                <input 
+                  type="range" 
+                  min="0.01" 
+                  max="0.2" 
+                  step="0.01"
+                  value={highThreshold}
+                  onChange={(e) => setHighThreshold(parseFloat(e.target.value))}
+                  style={{ width: 100, marginLeft: 8 }}
+                />
+              </label>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{
         position: 'absolute',
