@@ -11,7 +11,7 @@ function App() {
   const [transcript, setTranscript] = useState('SPEAK');
   const [mode, setMode] = useState('speech');
   const [textIndex, setTextIndex] = useState(0);
-  const [freqText, setFreqText] = useState('LISTEN');
+  const [freqText, setFreqText] = useState('');
   
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -32,21 +32,38 @@ function App() {
   ];
 
   const speechKeywordImages = {
-  'MAYA': '/images/maya.png',
-  'NICO': '/images/nico.png',
-  'HE': '/images/he.png',
-  'HIS': '/images/he.png',
-};
+    'MAYA': '/images/maya.png',
+    'NICO': '/images/nico.png',
+    'HE': '/images/he.png',
+  };
+
+  // === FREQUENCY背景オプション ===
+  
+  // オプション1: 背景色を変える
+  const freqBackgroundColors = {
+    'BASS': '#330000',  // 暗い赤
+    'HIGH': '#000033',  // 暗い青
+    'MIX': '#330033',   // 暗い紫
+  };
+  const useFreqBackgroundColor = true;  // falseにすると無効
+
+  // オプション2: 背景画像を表示
+  const freqBackgroundImages = {
+    'BASS': '/images/bass.png',
+    'HIGH': '/images/high.png',
+    'MIX': '/images/mix.png',
+  };
+  const useFreqBackgroundImage = false;  // trueにすると有効
 
   const detectSpeechKeyword = (text) => {
-  for (const keyword of Object.keys(speechKeywordImages)) {
-    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-    if (regex.test(text)) {
-      return keyword;
+    for (const keyword of Object.keys(speechKeywordImages)) {
+      const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+      if (regex.test(text)) {
+        return keyword;
+      }
     }
-  }
-  return null;
-};
+    return null;
+  };
   
   const maxCharsPerLine = 16;
   const maxLines = 3;
@@ -83,20 +100,23 @@ function App() {
   const text = getText();
   const chars = text.split('');
   
+  // 画像表示の判定
   const presetShowImage = mode === 'preset' && textIndex === 2;
   const speechKeyword = mode === 'speech' ? detectSpeechKeyword(transcript) : null;
   const speechShowImage = mode === 'speech' && speechKeyword;
-  const showImage = presetShowImage || speechShowImage;
+  const freqShowImage = useFreqBackgroundImage && mode === 'frequency' && freqBackgroundImages[freqText];
+  const showImage = presetShowImage || speechShowImage || freqShowImage;
   
   const getCurrentImage = () => {
     if (presetShowImage) return '/images/1.png';
     if (speechShowImage) return speechKeywordImages[speechKeyword];
+    if (freqShowImage) return freqBackgroundImages[freqText];
     return null;
   };
   const currentImage = getCurrentImage();
 
-  const beatThreshold = 0.025;
-  const shakeIntensity = 30;
+  const beatThreshold = 0.02;
+  const shakeIntensity = 40;
 
   useEffect(() => {
     const checkOrientation = () => {
@@ -139,28 +159,28 @@ function App() {
       }
       
       let newText = (finalTranscript || interimTranscript).toUpperCase().trim();
+      
+      // 単語の置き換え
+      const substitutions = {
+        'DEFEND': 'HIDE',
+        'DEFENDS': 'HIDES',
+        'DEFENDED': 'HID',
+        'DEFENDING': 'HIDING',
+        'PROTECT': 'RESTRICT',
+        'PROTECTS': 'RESTRICTS',
+        'PROTECTED': 'RESTRICTED',
+        'PROTECTING': 'RESTRICTING',
+        'SECURITY': 'SURVEILLANCE',
+      };
 
-// 単語の置き換え
-const substitutions = {
-  'DEFEND': 'HIDE',
-  'DEFENDS': 'HIDES',
-  'DEFENDED': 'HID',
-  'DEFENDING': 'HIDING',
-  'PROTECT': 'RESTRICT',
-  'PROTECTS': 'RESTRICTS',
-  'PROTECTED': 'RESTRICTED',
-  'PROTECTING': 'RESTRICTING',
-  'SECURITY': 'SURVEILLANCE',
-};
-
-Object.keys(substitutions).forEach(word => {
-  const regex = new RegExp(`\\b${word}\\b`, 'g');
-  newText = newText.replace(regex, substitutions[word]);
-});
-
-if (newText) {
-  setTranscript(newText);
-}
+      Object.keys(substitutions).forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'g');
+        newText = newText.replace(regex, substitutions[word]);
+      });
+      
+      if (newText) {
+        setTranscript(newText);
+      }
     };
     
     recognition.onerror = (event) => {
@@ -228,7 +248,7 @@ if (newText) {
           const bassStrong = bassAvg > 0.2;
           const highStrong = highAvg > 0.02;
 
-          let newFreqText = '...';
+          let newFreqText = '';
 
           if (bassStrong && bassAvg > highAvg * 5) {
             newFreqText = 'BASS';
@@ -300,8 +320,12 @@ if (newText) {
     }
   }, [beat]);
 
-  // 80vw / 16文字 = 5vw per character
-  const fontSize = '9vw';
+  // FREQUENCYモードは文字サイズを倍に
+  const charCount = mode === 'frequency' ? 4 : 8;
+
+  const fontSize = isLandscape 
+    ? `min(${80 / charCount}vh, 12vh)` 
+    : `min(${90 / charCount}vw, 10vw)`;
 
   const lineHeight = 0.9;
   const letterSpacing = '-0.02em';
@@ -312,11 +336,17 @@ if (newText) {
     else setMode('speech');
   };
 
+  // 背景色の決定
+  const backgroundColor = (useFreqBackgroundColor && mode === 'frequency' && freqBackgroundColors[freqText]) 
+    ? freqBackgroundColors[freqText] 
+    : 'black';
+
   return (
     <div style={{
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'black',
+      backgroundColor: backgroundColor,
+      transition: 'background-color 0.2s ease',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -348,8 +378,8 @@ if (newText) {
       {isListening && showImage && currentImage && (
         <div style={{
           position: 'absolute',
-          width: '60vw',
-          height: '60vh',
+          width: '80vw',
+          height: '80vh',
           zIndex: 1,
         }}>
           <img
@@ -373,7 +403,7 @@ if (newText) {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 0,
-          //mixBlendMode: 'difference',
+          mixBlendMode: 'difference',
         }}>
           {text.split('\n').map((line, lineIndex) => (
             <div 
@@ -400,7 +430,7 @@ if (newText) {
                       fontSize: fontSize,
                       fontFamily: '"OTR Grotesk", system-ui, sans-serif',
                       fontWeight: 900,
-                      color: 'blue',
+                      color: 'white',
                       display: 'inline-block',
                       transform: `translate(${offsets[i]?.x || 0}px, ${offsets[i]?.y || 0}px)`,
                       transition: beat ? 'none' : 'transform 0.1s ease-out',
@@ -408,7 +438,7 @@ if (newText) {
                       whiteSpace: 'pre',
                       lineHeight: lineHeight,
                       letterSpacing: letterSpacing,
-                      //mixBlendMode: 'difference',
+                      mixBlendMode: 'difference',
                     }}
                   >
                     {char}
@@ -428,11 +458,11 @@ if (newText) {
             top: 16,
             left: 16,
             padding: '8px 16px',
-            backgroundColor: mode === 'frequency' ? 'rgba(100,100,255,0.0)' : mode === 'speech' ? 'rgba(255,100,100,0.0)' : 'rgba(255,255,255,0.0)',
+            backgroundColor: mode === 'frequency' ? 'rgba(100,100,255,0.3)' : mode === 'speech' ? 'rgba(255,100,100,0.3)' : 'rgba(255,255,255,0.1)',
             color: 'white',
             fontFamily: 'monospace',
             fontSize: 12,
-            border: 'none',
+            border: '1px solid rgba(255,255,255,0.3)',
             cursor: 'pointer',
             zIndex: 10,
           }}
@@ -448,11 +478,11 @@ if (newText) {
           top: 16,
           right: 16,
           padding: '8px 16px',
-          backgroundColor: 'rgba(255,255,255,0.0)',
+          backgroundColor: 'rgba(255,255,255,0.1)',
           color: 'white',
           fontFamily: 'monospace',
           fontSize: 12,
-          border: 'none',
+          border: '1px solid rgba(255,255,255,0.3)',
           cursor: 'pointer',
           zIndex: 10,
         }}
