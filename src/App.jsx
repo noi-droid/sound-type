@@ -79,7 +79,7 @@ function App() {
   };
   
   const maxCharsPerLine = 16;
-  const maxLines = 3;
+  const maxLines = 5;
 
   const addLineBreaks = (str) => {
     const words = str.split(' ');
@@ -389,12 +389,12 @@ function App() {
       )}
 
       {isListening && showImage && currentImage && (
-        <div style={{
-          position: 'absolute',
-          width: '80vw',
-          height: '80vh',
-          zIndex: 1,
-        }}>
+  <div style={{
+    position: 'absolute',
+    width: mode === 'frequency' ? '100vw' : '80vw',
+    height: mode === 'frequency' ? '100vh' : '80vh',
+    zIndex: 1,
+  }}>
           <img
             src={currentImage}
             alt="Image"
